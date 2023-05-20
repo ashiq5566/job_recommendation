@@ -7,6 +7,8 @@ nltk.data.path.append("/home/ashiq/nltk_data")
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
+from urllib.parse import urljoin
+
 
 # Create your views here.
 def job(request):
@@ -56,58 +58,139 @@ def job(request):
     }
     return render(request,'index.html', context)
 
+# def result(request, location, keywords):
+#     # Configure Selenium to use Chrome driver
+#     driver = webdriver.Chrome()
+
+#     url = f"https://in.indeed.com/jobs?q={keywords}&l={location}"
+
+#     # Open URL in Selenium-controlled Chrome browser
+#     driver.get(url)
+
+#     # Wait for page to load
+#     driver.implicitly_wait(10)
+
+#     # Scroll down to load more job listings
+#     for i in range(5):
+#         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
+#         driver.implicitly_wait(2)
+
+#     # Parse HTML with BeautifulSoup
+#     soup = BeautifulSoup(driver.page_source, "html.parser")
+
+#     job_information = []
+
+#     # Find all job listings on the page
+#     job_listings = soup.find_all(class_="tapItem")
+
+#     # Print the title, company, and location for each job listing
+#     for job in job_listings:
+#         try:
+#             title = job.find(class_=["jobTitle"]).text.strip()
+#             company = job.find(class_="companyName").text.strip()
+#             location_elem = job.find(class_="companyLocation")
+#             location = location_elem.text.strip() if location_elem else "N/A"
+#             link_elem = job.find("a", class_="jcs-JobTitle")
+#             link = link_elem["data-jk"] if link_elem else None
+#             print(f"Title: {title}\nCompany: {company}\nLocation: {location}\n")
+#             job_information.append({
+#                 "title": title,
+#                 "company": company,
+#                 "location": location,
+#                 'link':link
+                
+#             })
+#         except AttributeError:
+#             print("Error: could not find job information")
+#     #Close the Selenium-controlled browser
+#     driver.quit()
+#     context = {
+#         'job_information':job_information
+#     }
+#     return render(request,'result.html', context)
+
 def result(request, location, keywords):
     # Configure Selenium to use Chrome driver
     driver = webdriver.Chrome()
 
-    url = f"https://in.indeed.com/jobs?q={keywords}&l={location}"
-
-    # Open URL in Selenium-controlled Chrome browser
-    driver.get(url)
-
-    # Wait for page to load
-    driver.implicitly_wait(10)
-
-    # Scroll down to load more job listings
-    for i in range(5):
-        driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
-        driver.implicitly_wait(2)
-
-    # Parse HTML with BeautifulSoup
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-
+    # List of sites to scrape
+    sites = [
+        {
+            'name': 'Indeed',
+            'url': f"https://in.indeed.com/jobs?q={keywords}&l={location}",
+            'listing_class': 'tapItem',
+            'title_class': 'jobTitle',
+            'company_class': 'companyName',
+            'location_class': 'companyLocation',
+            'link_class': 'jcs-JobTitle'
+        },
+        {
+            'name': 'Naukri',
+            'url': f"https://www.naukri.com/{keywords}-jobs-in-{location}?k={keywords}&l={location}",
+            'listing_class': 'jobTuple',
+            'title_class': 'title',
+            'company_class': 'subTitle',
+            'location_class': 'locWdth',
+            'link_class': 'title'
+        },
+        {
+            'name': 'Monster',
+            'url': f"https://www.monster.com/jobs/search?q={keywords}&where={location}",
+            'listing_class': 'sc-iJCbQK',
+            'title_class': 'sc-czvZiG',
+            'company_class': 'sc-bQFuvY',
+            'location_class': 'sc-bOtlzW',
+            'link_class': 'sc-jHwEXd'
+        },
+        # Add more sites as needed
+    ]
     job_information = []
 
-    # Find all job listings on the page
-    job_listings = soup.find_all(class_="tapItem")
+    for site in sites:
+        # Open URL in Selenium-controlled Chrome browser
+        driver.get(site['url'])
 
-    # Print the title, company, and location for each job listing
-    for job in job_listings:
-        try:
-            title = job.find(class_=["jobTitle"]).text.strip()
-            company = job.find(class_="companyName").text.strip()
-            location_elem = job.find(class_="companyLocation")
-            location = location_elem.text.strip() if location_elem else "N/A"
-            link_elem = job.find("a", class_="jcs-JobTitle")
-            link = link_elem["data-jk"] if link_elem else None
-            print(f"Title: {title}\nCompany: {company}\nLocation: {location}\n")
-            job_information.append({
-                "title": title,
-                "company": company,
-                "location": location,
-                'link':link
-                
-            })
-        except AttributeError:
-            print("Error: could not find job information")
-    #Close the Selenium-controlled browser
+        # Wait for page to load
+        driver.implicitly_wait(10)
+
+        # Scroll down to load more job listings
+        for i in range(5):
+            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
+            driver.implicitly_wait(2)
+
+        # Parse HTML with BeautifulSoup
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+
+        # Find all job listings on the page
+        job_listings = soup.find_all(class_=site['listing_class'])
+
+        # Print the title, company, and location for each job listing
+        for job in job_listings:
+            try:
+                title = job.find(class_=site['title_class']).text.strip()
+                company = job.find(class_=site['company_class']).text.strip()
+                location_elem = job.find(class_=site['location_class'])
+                location = location_elem.text.strip() if location_elem else "N/A"
+                link_elem = job.find("a", class_=site['link_class'])
+                link = urljoin(site['url'], link_elem["href"]) if link_elem else None
+                print(f"Site: {site['name']}")
+                print(f"Title: {title}\nCompany: {company}\nLocation: {location}\nlink: {link}")
+                job_information.append({
+                    "site": site['name'],
+                    "title": title,
+                    "company": company,
+                    "location": location,
+                    'link': link
+                })
+            except AttributeError:
+                print(f"Error: could not find job information on {site['name']}")
+
+    # Close the Selenium-controlled browser
     driver.quit()
     context = {
-        'job_information':job_information
+        'job_information': job_information
     }
-    return render(request,'result.html', context)
-
-# Build URL for job search with keywords and location
+    return render(request, 'result.html', context)
         
 
 
