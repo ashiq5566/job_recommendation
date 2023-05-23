@@ -4,10 +4,15 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import nltk
 nltk.data.path.append("/home/ashiq/nltk_data")
-from nltk.tokenize import word_tokenize
+from nltk import ne_chunk, pos_tag, word_tokenize
+from nltk.tree import Tree
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
+from .models import KeywordList
+import string
+
+
 
 
 # Create your views here.
@@ -24,34 +29,59 @@ def job(request):
 
         # Tokenize the description into words
         words = word_tokenize(description)
+        
         # Remove stop words (common words that don't add meaning)
         stop_words = set(stopwords.words('english'))
-        # filtered_words = [word for word in words if not word in stop_words]
-        filtered_words = [word.lower() for word in words if not word in stop_words]
-        print(filtered_words)
+        def is_named_entity(word):
+            tagged_words = pos_tag(word_tokenize(word))
+            tree = ne_chunk(tagged_words)
+            for subtree in tree:
+                if isinstance(subtree, Tree) and subtree.label() != 'S':
+                    return True
+            return False
+        
+        # Remove punctuation marks from words
+        words = [word for word in words if word not in string.punctuation]
 
-        # Define a list of Python-related keywords
-        job_keywords = ['python', 'pytorch', 'sql', 'mxnet', 'mlflow', 'einstein', 'theano', 'pyspark', 'solr', 'mahout', 
-        'cassandra', 'aws', 'powerpoint', 'spark', 'pig', 'sas', 'java', 'nosql', 'docker', 'salesforce', 'scala', 'r',
-        'c', 'c++', 'net', 'tableau', 'pandas', 'scikitlearn', 'sklearn', 'matlab', 'scala', 'keras', 'tensorflow', 'clojure',
-        'caffe', 'scipy', 'numpy', 'matplotlib', 'vba', 'spss', 'linux', 'azure', 'cloud', 'gcp', 'mongodb', 'mysql', 'oracle', 
-        'redshift', 'snowflake', 'kafka', 'javascript', 'qlik', 'jupyter', 'perl', 'bigquery', 'unix', 'react',
-        'scikit', 'powerbi', 's3', 'ec2', 'lambda', 'ssrs', 'kubernetes', 'hana', 'spacy', 'tf', 'django', 'sagemaker',
-        'seaborn', 'mllib', 'github', 'git', 'elasticsearch', 'splunk', 'airflow', 'looker', 'rapidminer', 'birt', 'pentaho', 
-        'jquery', 'nodejs', 'd3', 'plotly', 'bokeh', 'xgboost', 'rstudio', 'shiny', 'dash', 'h20', 'h2o', 'hadoop', 'mapreduce', 
-        'hive', 'cognos', 'angular', 'nltk', 'flask', 'node', 'firebase', 'bigtable', 'rust', 'php', 'cntk', 'lightgbm', 
-        'kubeflow', 'rpython', 'unixlinux', 'postgressql', 'postgresql', 'postgres', 'hbase', 'dask', 'ruby', 'julia', 'tensor',
-        # added r packages doesn't seem to impact the result
-        'dplyr','ggplot2','esquisse','bioconductor','shiny','lubridate','knitr','mlr','quanteda','dt','rcrawler','caret','rmarkdown',
-        'leaflet','janitor','ggvis','plotly','rcharts','rbokeh','broom','stringr','magrittr','slidify','rvest',
-        'rmysql','rsqlite','prophet','glmnet','text2vec','snowballc','quantmod','rstan','swirl','datasciencer']
+        # filtered_words = [word for word in words if not word in stop_words]
+        filtered_words = [word.lower() for word in words if word.lower() not in stop_words and not is_named_entity(word)]
+        print("words after fitering",filtered_words)
 
         # Find keywords in the filtered words
-        found_keywords = [word for word in filtered_words if word in job_keywords]
-        keywords = "+".join(found_keywords)
-        print(found_keywords)
+        # found_keywords = [word for word in filtered_words if word in job_keywords]
+        # keywords = "+".join(found_keywords)
+        # print(found_keywords)
         # Get user input for job location
         location = loc
+        
+        keyword_list = KeywordList.objects.first()
+        if keyword_list:
+            job_keywords = keyword_list.keywords.split(',')
+        else:
+            job_keywords = []
+        
+        new_keywords = [word for word in filtered_words if word not in job_keywords]
+        print("new words to be added",new_keywords)
+        if new_keywords:
+            # Append the new keywords to the existing keyword list
+            job_keywords += new_keywords
+            found_keywords = [word for word in filtered_words if word in job_keywords]
+            keywords = "+".join(found_keywords)
+        else:
+            found_keywords = [word for word in filtered_words if word in job_keywords]
+            keywords = "+".join(found_keywords)
+        print("updated keyword List",job_keywords)
+        
+        if keyword_list:
+            # If a keyword list exists, update it
+            keyword_list.keywords = ','.join(job_keywords)
+            keyword_list.save()
+        else:
+            # If no keyword list exists, create a new one
+            KeywordList.objects.create(keywords=','.join(job_keywords))
+        
+        keywords = "+".join(found_keywords)
+        
         return redirect('result', location=location, keywords=keywords)
     context = {
         'keywords':keywords,
@@ -102,10 +132,10 @@ def result(request, location, keywords):
         driver.get(site['url'])
 
         # Wait for page to load
-        driver.implicitly_wait(10)
+        driver.implicitly_wait(5)
 
         # Scroll down to load more job listings
-        for i in range(5):
+        for i in range(10):
             driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
             driver.implicitly_wait(2)
 
