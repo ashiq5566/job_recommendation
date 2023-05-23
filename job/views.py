@@ -24,13 +24,14 @@ def job(request):
 
         # Tokenize the description into words
         words = word_tokenize(description)
-
         # Remove stop words (common words that don't add meaning)
         stop_words = set(stopwords.words('english'))
-        filtered_words = [word for word in words if not word in stop_words]
+        # filtered_words = [word for word in words if not word in stop_words]
+        filtered_words = [word.lower() for word in words if not word in stop_words]
+        print(filtered_words)
 
         # Define a list of Python-related keywords
-        python_keywords = ['python', 'pytorch', 'sql', 'mxnet', 'mlflow', 'einstein', 'theano', 'pyspark', 'solr', 'mahout', 
+        job_keywords = ['python', 'pytorch', 'sql', 'mxnet', 'mlflow', 'einstein', 'theano', 'pyspark', 'solr', 'mahout', 
         'cassandra', 'aws', 'powerpoint', 'spark', 'pig', 'sas', 'java', 'nosql', 'docker', 'salesforce', 'scala', 'r',
         'c', 'c++', 'net', 'tableau', 'pandas', 'scikitlearn', 'sklearn', 'matlab', 'scala', 'keras', 'tensorflow', 'clojure',
         'caffe', 'scipy', 'numpy', 'matplotlib', 'vba', 'spss', 'linux', 'azure', 'cloud', 'gcp', 'mongodb', 'mysql', 'oracle', 
@@ -46,7 +47,7 @@ def job(request):
         'rmysql','rsqlite','prophet','glmnet','text2vec','snowballc','quantmod','rstan','swirl','datasciencer']
 
         # Find keywords in the filtered words
-        found_keywords = [word for word in filtered_words if word in python_keywords]
+        found_keywords = [word for word in filtered_words if word in job_keywords]
         keywords = "+".join(found_keywords)
         print(found_keywords)
         # Get user input for job location
@@ -58,56 +59,6 @@ def job(request):
     }
     return render(request,'index.html', context)
 
-# def result(request, location, keywords):
-#     # Configure Selenium to use Chrome driver
-#     driver = webdriver.Chrome()
-
-#     url = f"https://in.indeed.com/jobs?q={keywords}&l={location}"
-
-#     # Open URL in Selenium-controlled Chrome browser
-#     driver.get(url)
-
-#     # Wait for page to load
-#     driver.implicitly_wait(10)
-
-#     # Scroll down to load more job listings
-#     for i in range(5):
-#         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
-#         driver.implicitly_wait(2)
-
-#     # Parse HTML with BeautifulSoup
-#     soup = BeautifulSoup(driver.page_source, "html.parser")
-
-#     job_information = []
-
-#     # Find all job listings on the page
-#     job_listings = soup.find_all(class_="tapItem")
-
-#     # Print the title, company, and location for each job listing
-#     for job in job_listings:
-#         try:
-#             title = job.find(class_=["jobTitle"]).text.strip()
-#             company = job.find(class_="companyName").text.strip()
-#             location_elem = job.find(class_="companyLocation")
-#             location = location_elem.text.strip() if location_elem else "N/A"
-#             link_elem = job.find("a", class_="jcs-JobTitle")
-#             link = link_elem["data-jk"] if link_elem else None
-#             print(f"Title: {title}\nCompany: {company}\nLocation: {location}\n")
-#             job_information.append({
-#                 "title": title,
-#                 "company": company,
-#                 "location": location,
-#                 'link':link
-                
-#             })
-#         except AttributeError:
-#             print("Error: could not find job information")
-#     #Close the Selenium-controlled browser
-#     driver.quit()
-#     context = {
-#         'job_information':job_information
-#     }
-#     return render(request,'result.html', context)
 
 def result(request, location, keywords):
     # Configure Selenium to use Chrome driver
