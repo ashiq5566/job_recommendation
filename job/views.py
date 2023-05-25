@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 import nltk
@@ -29,6 +30,10 @@ def job(request):
 
         # Tokenize the description into words
         words = word_tokenize(description)
+        words = [word.lower() for word in words]
+        print("after tokenisation",words)
+
+
         
         # Remove stop words (common words that don't add meaning)
         stop_words = set(stopwords.words('english'))
@@ -70,7 +75,7 @@ def job(request):
         else:
             found_keywords = [word for word in filtered_words if word in job_keywords]
             keywords = "+".join(found_keywords)
-        print("updated keyword List",job_keywords)
+        print("current keyword List",keywords)
         
         if keyword_list:
             # If a keyword list exists, update it
@@ -91,6 +96,10 @@ def job(request):
 
 
 def result(request, location, keywords):
+    
+    # chrome_options = Options()
+    # chrome_options.add_argument("--headless")
+    
     # Configure Selenium to use Chrome driver
     driver = webdriver.Chrome()
 
@@ -123,6 +132,15 @@ def result(request, location, keywords):
             'location_class': 'sc-bOtlzW',
             'link_class': 'sc-jHwEXd'
         },
+        {
+            'name': 'LinkedIn',
+            'url': f"https://www.linkedin.com/jobs/search?keywords={keywords}&location={location}",
+            'listing_class': 'jobs-search__results-list',
+            'title_class': 'base-search-card__title',
+            'company_class': 'base-search-card__subtitle',
+            'location_class': 'job-search-card__location',
+            'link_class': 'base-card__full-link'
+        },
         # Add more sites as needed
     ]
     job_information = []
@@ -132,7 +150,7 @@ def result(request, location, keywords):
         driver.get(site['url'])
 
         # Wait for page to load
-        driver.implicitly_wait(5)
+        driver.implicitly_wait(20)
 
         # Scroll down to load more job listings
         for i in range(10):

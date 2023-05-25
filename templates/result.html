@@ -12,6 +12,11 @@
 </head>
 <body>
     <script src="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+    <script>
+        function changeLinkColor(link) {
+            link.classList.add("clicked");
+        }
+    </script>
     <div class="head">
         <h3>Recommended Jobs</h3>
     </div>
@@ -24,12 +29,13 @@
                 <i class="fas fa-building"></i> {{ job.company }}<br />
                 <i class="fas fa-map-marker-alt"></i> {{job.location}}<br />
                 <div class="apply-link">
-                    <a href="{{job.link}}" class="apply">Apply</a>
+                    <a href="{{job.link}}" class="apply" onclick="changeLinkColor(this)">Apply</a>
                 </div>                
             </div>
         {% endfor %}
         
     </div>
+    
 </body>
 
 <style>
@@ -50,7 +56,9 @@ body {
 .alert{
     color:white;
 }
-
+.apply.clicked {
+    color: red;
+  }
 .head{
     display: flex;
     justify-content: center;
