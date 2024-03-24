@@ -3,8 +3,9 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 import nltk
-nltk.data.path.append("/home/ashiq/nltk_data")
+nltk.data.path.append("/Users/mohammedashiqalik/nltk_data")
 from nltk import ne_chunk, pos_tag, word_tokenize
 from nltk.tree import Tree
 from nltk.corpus import stopwords
@@ -101,7 +102,12 @@ def result(request, location, keywords):
     # chrome_options.add_argument("--headless")
     
     # Configure Selenium to use Chrome driver
-    driver = webdriver.Chrome()
+
+    service = Service()
+    options = webdriver.ChromeOptions()
+    driver = webdriver.Chrome(service=service, options=options)
+    # ...
+    # driver.quit()
 
     # List of sites to scrape
     sites = [
